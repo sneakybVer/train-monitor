@@ -1,12 +1,12 @@
 from consts import *
 from suds.client import Client
 from suds.sax.element import Element
-from twython import Twython
+from twython import Twython, TwythonError
 import datetime
 import pytz
 import time
 import collections
-
+import logging
 
 class Service( object ):
 	
@@ -38,7 +38,7 @@ class ServicesMonitor( object ):
 			self.servicesCache.appendleft( Service( time, station, destination ) )
 			if len( self.servicesCache ) == 5:
 				drop = self.servicesCache.pop()
-				print 'Dropping: %s' % drop.printInfo()
+				logging.info( 'Dropping: %s', drop.printInfo() )
 
 	def getServicesToMonitor( self ):
 		# TODO improve to load from file if present etc etc
@@ -89,14 +89,14 @@ class CommunicationBot( object ):
 	def postDirectMessage( self, userId, message ):
 		try:
 			self.twitter.send_direct_message( user_id = userId, text = message )
-		except Exception as e:
-			print e		
+		except TwythonError as e:
+			logging.warn( 'Twython error sending direct message: %s', e.msg )		
 
 	def postTweet( self, message ):
 		try:
 			self.twitter.update_status( status = message )
-		except Exception as e:
-			print e
+		except TwythonError as e:
+			logging.warn( 'Twython error posting tweet: %s', e.msg )
 
 class ArrivalETAMonitor( object ):
 
@@ -138,25 +138,23 @@ class ArrivalETAMonitor( object ):
 
 	def monitorServices( self ):
 		while 1:
-			# dict of service time to 
 			newServiceMessages = self.communicationClient.getNewServiceRequests()
 			self.servicesClient.insertNewServices( newServiceMessages )			
 			
 			for service in self.servicesClient.getServicesToMonitor():
 				if ( service.scheduledTime - self._getCurrentTime() ).seconds < ( 1800 ):
-					#debug
-					print "monitoring service: %s" % service.printInfo()
+					logging.info( "monitoring service: %s", service.printInfo() )
 
 					serviceData = self._getDesiredServiceFromDepartureBoard( service )
 					if serviceData:
 						delay = self._calculateDelay( service.scheduledTime, serviceData.etd )
 						if delay.seconds > ( 3 * 60 ):
-							#debug
-							print "sending delay warning for: %s" % service.printInfo()
+							logging.info( "sending delay warning for: %s", service.printInfo() )
 							notificationStr = service.printInfo() + ' is delayed by %s minutes' % ( delay.seconds / 60 ) 
 							self.communicationClient.postTweet( notificationStr )
 			time.sleep( 120 )
 
 def run():
+	logging.basicConfig( filename = 'train_monitor.log', level = logging.DEBUG )
 	monitor = ArrivalETAMonitor()
 	monitor.monitorServices()
