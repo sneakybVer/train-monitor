@@ -1,3 +1,4 @@
+from consts import *
 from suds.client import Client
 from suds.sax.element import Element
 from twython import Twython
@@ -19,6 +20,8 @@ class Service( object ):
 		return 'The %s service from %s to %s' % ( self.scheduledTimeStr, self.station, self.destination ) 
 
 class ServicesMonitor( object ):
+
+	# TODO implement holding onto services for a certain amount of time
 	
 	def __init__( self ):
 		self.servicesCache = collections.deque()
@@ -34,7 +37,8 @@ class ServicesMonitor( object ):
 			# maintain a maximum of 5 servies for now, FIFO
 			self.servicesCache.appendleft( Service( time, station, destination ) )
 			if len( self.servicesCache ) == 5:
-				self.servicesCache.pop()
+				drop = self.servicesCache.pop()
+				print 'Dropping: %s' % drop.printInfo()
 
 	def getServicesToMonitor( self ):
 		# TODO improve to load from file if present etc etc
@@ -43,19 +47,13 @@ class ServicesMonitor( object ):
 
 class CommunicationBot( object ):
 
-	CONS_KEY 	  = '3tsfuMeATq2KyuaShbPhSk7uE'
-	CONS_SECRET       = 'UdZCUzjSh1rBCHf1Y20QMeAyJcuV7zEF98Mapa4PpOXafmNXBc'
-	ACCESS_KEY 	  = '848489622913134593-wkcyysuoz9CGMJ5eLnRWxP9krjPli8q'
-	ACCESS_SECRET     = 'zxXcQn8Tv7xU1fzRwcrJSYnfqKINpeLR1ZMyPQBtBctQ3'
-	MESSAGE_ID_FILE	  = 'message.txt'
-
 	def __init__( self ):
-		self.twitter = Twython( self.CONS_KEY, self.CONS_SECRET, self.ACCESS_KEY, self.ACCESS_SECRET ) 
+		self.twitter = Twython( TW_CONS_KEY, TW_CONS_SECRET, TW_ACCESS_KEY, TW_ACCESS_SECRET ) 
 		self.mostRecentMessageId = self._loadMostRecentMessageId()
 
 	def _loadMostRecentMessageId( self ):
 		id = ''
-		with open( self.MESSAGE_ID_FILE, 'r' ) as f:
+		with open( MESSAGE_ID_FILE, 'r' ) as f:
 			id = f.read()
 		return id
 	
@@ -80,24 +78,30 @@ class CommunicationBot( object ):
 				self.mostRecentMessageId = str( message.get( 'id' ) )
 				serviceRequest = message.get( 'text' )
 				if self._isRequiredFormat( serviceRequest ):
+					self.postDirectMessage( message.get( 'sender_id' ), 'Subscribed!' )
 					validServiceRequests.append( serviceRequest )
 				else:
-					self.postTweet( 'I received an invalid request: %s' % message.get( 'text' ) )
-					self.postTweet( 'Valid message format is HH:MM STN DEST, using station CRS codes. For example, 13:24 HIT KGX' )
+					self.postDirectMessage( message.get( 'sender_id' ), 'I received an invalid request: %s' % message.get( 'text' ) )
+					self.postDirectMessage( message.get( 'sender_id' ), 'Valid message format is HH:MM STN DEST, using station CRS codes. For example, 13:24 HIT KGX' )
 
-			with open( self.MESSAGE_ID_FILE, 'w' ) as f:
+			with open( MESSAGE_ID_FILE, 'w' ) as f:
 				f.truncate()
 				f.write( self.mostRecentMessageId )
 		return validServiceRequests
 
+	def postDirectMessage( self, userId, message ):
+		try:
+			self.twitter.send_direct_message( user_id = userId, text = message )
+		except Exception as e:
+			print e		
+
 	def postTweet( self, message ):
-		self.twitter.update_status( status = message )
+		try:
+			self.twitter.update_status( status = message )
+		except Exception as e:
+			print e
 
 class ArrivalETAMonitor( object ):
-
-	DARWIN_WEBSERVICE_NAMESPACE = ( 'com', 'http://thalesgroup.com/RTTI/2010-11-01/ldb/commontypes' )	
-	TOKEN = 'c3298d2f-9ac8-43dd-bfb6-ba071609ec01'
-	LDBWS_URL = 'https://lite.realtime.nationalrail.co.uk/OpenLDBWS/wsdl.aspx?ver=2016-02-16'
 
 	def __init__( self ):
 		self.nationalRailClient = self._setupClient()
@@ -105,18 +109,18 @@ class ArrivalETAMonitor( object ):
 		self.communicationClient = CommunicationBot()
 
 	def _setupClient( self ):
-		token = Element( 'AccessToken', ns = self.DARWIN_WEBSERVICE_NAMESPACE )
-		val = Element( 'TokenValue', ns = self.DARWIN_WEBSERVICE_NAMESPACE )
-		val.setText( self.TOKEN )
+		token = Element( 'AccessToken', ns = DARWIN_WEBSERVICE_NAMESPACE )
+		val = Element( 'TokenValue', ns = DARWIN_WEBSERVICE_NAMESPACE )
+		val.setText( DARWIN_TOKEN )
 		token.append( val )
-		client = Client( self.LDBWS_URL )
+		client = Client( LDBWS_URL )
 		client.set_options( soapheaders = ( token ) )
 		return client
 
-	def _getDesiredServiceFromDepartureBoard( self, station, destination, scheduledTime ):
-		depBoard = self.nationalRailClient.service.GetDepBoardWithDetails( 10, station, destination, None, None, None )
+	def _getDesiredServiceFromDepartureBoard( self, service ):
+		depBoard = self.nationalRailClient.service.GetDepBoardWithDetails( 10, service.station, service.destination, None, None, None )
 		for serviceItem in depBoard.trainServices.service:
-			if serviceItem.std == sheduledTime:
+			if serviceItem.std == service.sheduledTimeStr:
 				for serviceLocation in serviceItem.destination.location:
 					if serviceLocation.crs == destination:
 						return serviceItem
@@ -146,7 +150,7 @@ class ArrivalETAMonitor( object ):
 					#debug
 					print "monitoring service: %s" % service.printInfo()
 
-					serviceData = self._getDesiredServiceFromDepartureBoard()
+					serviceData = self._getDesiredServiceFromDepartureBoard( service )
 					if serviceData:
 						delay = self._calculateDelay( service.scheduledTime, serviceData.etd )
 						if delay.seconds > ( 3 * 60 ):
