@@ -153,7 +153,7 @@ class ArrivalETAMonitor( object ):
 					delay = self._calculateDelay( service.scheduledTime, serviceData.etd )
 					if delay.seconds > ( 3 * 60 ):
 						logging.info( "sending delay warning for: %s", service.printInfo() )
-						notificationStr = service.printInfo() + ' is delayed by %s minutes' % ( delay.seconds / 60 ) 
+						notificationStr = datetime.date.today().strftime('%d/%m/%y') + ': ' + service.printInfo() + ' is delayed by %s minutes' % ( delay.seconds / 60 ) 
 						self.communicationClient.postTweet( notificationStr )
 			time.sleep( 120 )
 
