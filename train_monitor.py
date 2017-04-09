@@ -29,21 +29,29 @@ class ServicesMonitor( object ):
 	def insertNewServices( self, newServices ):
 		for newService in newServices:
 			info = newService.split( ' ' )
-			# naive implementation - TODO improve
-			time = info[0]
-			station = info[1]
+			# naive implementation trusts format of data - TODO improve
+			time        = info[0]
+			station     = info[1]
 			destination = info[2]
 
 			# maintain a maximum of 5 servies for now, FIFO
 			self.servicesCache.appendleft( Service( time, station, destination ) )
-			if len( self.servicesCache ) == 5:
+			if len( self.servicesCache ) == 6:
 				drop = self.servicesCache.pop()
 				logging.info( 'Dropping: %s', drop.printInfo() )
 
+	def _getCurrentTime( self ):
+	        # get current time but remove timezone after
+        	now = datetime.datetime.now( pytz.timezone( 'Europe/London' ) )
+           	now = now.replace( tzinfo = None )
+		return now
+
+	def _isWithinTimeframe( self, scheduledTime ):
+		return ( scheduledTime - self._getCurrentTime() ).seconds < 1800
+
 	def getServicesToMonitor( self ):
 		# TODO improve to load from file if present etc etc
-		return self.servicesCache 
-
+		return [ service for service in self.servicesCache if self._isWithinTimeframe( service.scheduledTime ) ]
 
 class CommunicationBot( object ):
 
@@ -53,7 +61,8 @@ class CommunicationBot( object ):
 
 	def _loadMostRecentMessageId( self ):
 		with open( MESSAGE_ID_FILE, 'r' ) as f:
-			return f.read()
+			id = f.read()
+			return int( id )
 	
 	def _isRequiredFormat( self, serviceRequest ):
 		# quite noddy, TODO make smarter, use re
@@ -69,10 +78,10 @@ class CommunicationBot( object ):
 
 	def getNewServiceRequests( self ):
 		validServiceRequests = []
-		messages = self.twitter.get_direct_messages( since_id = int( self.mostRecentMessageId ) if self.mostRecentMessageId else None )
+		messages = self.twitter.get_direct_messages( since_id =  self.mostRecentMessageId if self.mostRecentMessageId else None )
 		if messages:
 			for message in messages:
-				self.mostRecentMessageId = str( message.get( 'id' ) )
+				self.mostRecentMessageId = message.get( 'id' ) if message.get( 'id' ) > self.mostRecentMessageId else self.mostRecentMessageId
 				serviceRequest = message.get( 'text' )
 				if self._isRequiredFormat( serviceRequest ):
 					logging.info( 'Subscribing to: %s', serviceRequest )
@@ -84,7 +93,7 @@ class CommunicationBot( object ):
 
 			with open( MESSAGE_ID_FILE, 'w' ) as f:
 				f.truncate()
-				f.write( self.mostRecentMessageId )
+				f.write( str( self.mostRecentMessageId ) )
 		return validServiceRequests
 
 	def postDirectMessage( self, userId, message ):
@@ -131,28 +140,21 @@ class ArrivalETAMonitor( object ):
 			estimate = scheduled
 		return estimate - scheduled
 
-	def _getCurrentTime( self ):
-	        # get current time but remove timezone after
-        	now = datetime.datetime.now( pytz.timezone( 'Europe/London' ) )
-           	now = now.replace( tzinfo = None )
-		return now
-
 	def monitorServices( self ):
 		while 1:
 			newServiceMessages = self.communicationClient.getNewServiceRequests()
 			self.servicesClient.insertNewServices( newServiceMessages )			
 			
 			for service in self.servicesClient.getServicesToMonitor():
-				if ( service.scheduledTime - self._getCurrentTime() ).seconds < ( 1800 ):
-					logging.info( "monitoring service: %s", service.printInfo() )
+				logging.info( "monitoring service: %s", service.printInfo() )
 
-					serviceData = self._getDesiredServiceFromDepartureBoard( service )
-					if serviceData:
-						delay = self._calculateDelay( service.scheduledTime, serviceData.etd )
-						if delay.seconds > ( 3 * 60 ):
-							logging.info( "sending delay warning for: %s", service.printInfo() )
-							notificationStr = service.printInfo() + ' is delayed by %s minutes' % ( delay.seconds / 60 ) 
-							self.communicationClient.postTweet( notificationStr )
+				serviceData = self._getDesiredServiceFromDepartureBoard( service )
+				if serviceData:
+					delay = self._calculateDelay( service.scheduledTime, serviceData.etd )
+					if delay.seconds > ( 3 * 60 ):
+						logging.info( "sending delay warning for: %s", service.printInfo() )
+						notificationStr = service.printInfo() + ' is delayed by %s minutes' % ( delay.seconds / 60 ) 
+						self.communicationClient.postTweet( notificationStr )
 			time.sleep( 120 )
 
 def run():
