@@ -79,7 +79,7 @@ class CommunicationBot( object ):
 					self.postDirectMessage( message.get( 'sender_id' ), 'Subscribed!' )
 					validServiceRequests.append( serviceRequest )
 				else:
-					self.postDirectMessage( message.get( 'sender_id' ), 'I received an invalid request: %s' % message.get( 'text' ) )
+					self.postDirectMessage( message.get( 'sender_id' ), 'I received an invalid request: %s' % serviceRequest )
 					self.postDirectMessage( message.get( 'sender_id' ), 'Valid message format is HH:MM STN DEST, using station CRS codes. For example, 13:24 HIT KGX' )
 
 			with open( MESSAGE_ID_FILE, 'w' ) as f:
@@ -125,7 +125,7 @@ class ArrivalETAMonitor( object ):
 
 	def _calculateDelay( self, scheduled, estimate ):
 		try:
-			estimate = datetime.datetime.strptime( service.etd, '%H:%M' )
+			estimate = datetime.datetime.strptime( estimate, '%H:%M' )
 		except Exception as _:
 			# this is because 'On Time' is a valid value for etd
 			estimate = scheduled
@@ -156,6 +156,7 @@ class ArrivalETAMonitor( object ):
 			time.sleep( 120 )
 
 def run():
-	logging.basicConfig( filename = 'train_monitor.log', level = logging.DEBUG )
+	logging.basicConfig( filename = 'train_monitor.log', level = logging.INFO, format = '%(asctime)s %(message)s', datefmt = '%m/%d/%Y %I:%M:%S %p' )
+	logging.info( 'Starting' )
 	monitor = ArrivalETAMonitor()
 	monitor.monitorServices()
