@@ -52,10 +52,8 @@ class CommunicationBot( object ):
 		self.mostRecentMessageId = self._loadMostRecentMessageId()
 
 	def _loadMostRecentMessageId( self ):
-		id = ''
 		with open( MESSAGE_ID_FILE, 'r' ) as f:
-			id = f.read()
-		return id
+			return f.read()
 	
 	def _isRequiredFormat( self, serviceRequest ):
 		# quite noddy, TODO make smarter, use re
