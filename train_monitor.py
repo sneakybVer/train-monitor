@@ -75,6 +75,7 @@ class CommunicationBot( object ):
 				self.mostRecentMessageId = str( message.get( 'id' ) )
 				serviceRequest = message.get( 'text' )
 				if self._isRequiredFormat( serviceRequest ):
+					logging.info( 'Subscribing to: %s', serviceRequest )
 					self.postDirectMessage( message.get( 'sender_id' ), 'Subscribed!' )
 					validServiceRequests.append( serviceRequest )
 				else:
@@ -117,9 +118,9 @@ class ArrivalETAMonitor( object ):
 	def _getDesiredServiceFromDepartureBoard( self, service ):
 		depBoard = self.nationalRailClient.service.GetDepBoardWithDetails( 10, service.station, service.destination, None, None, None )
 		for serviceItem in depBoard.trainServices.service:
-			if serviceItem.std == service.sheduledTimeStr:
+			if serviceItem.std == service.scheduledTimeStr:
 				for serviceLocation in serviceItem.destination.location:
-					if serviceLocation.crs == destination:
+					if serviceLocation.crs == service.destination:
 						return serviceItem
 
 	def _calculateDelay( self, scheduled, estimate ):
