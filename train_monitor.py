@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from consts import *
 from suds.client import Client
 from suds.sax.element import Element
@@ -7,6 +8,7 @@ import pytz
 import time
 import collections
 import logging
+import sys
 
 class Service( object ):
 	
@@ -16,6 +18,9 @@ class Service( object ):
 		self.station 	      = station
 		self.destination      = destination
 
+	def serialise( self ):
+		return ' '.join( [ self.scheduledTimeStr, self.station, self.destination ] )
+
 	def printInfo( self ):
 		return 'The %s service from %s to %s' % ( self.scheduledTimeStr, self.station, self.destination ) 
 
@@ -23,8 +28,26 @@ class ServicesMonitor( object ):
 
 	# TODO implement holding onto services for a certain amount of time
 	
-	def __init__( self ):
-		self.servicesCache = collections.deque()
+	def __init__( self, cacheFilePath = '' ):
+		self.cacheFilePath = cacheFilePath
+		self.servicesCache = self._loadServicesFromFile()
+
+	def _loadServicesFromFile( self ):
+		res = []
+		if self.cacheFilePath:
+			with open( self.cacheFilePath, 'r' ) as f:
+				content = f.read()
+			serialisedServices = content.split( '\n' )
+			for s in serialisedServices:
+				if s:
+					info = s.split( ' ' )
+					res.append( Service( info[0], info[1], info[2] ) )
+		return res		
+
+	def _saveServicesToFile( self ):
+		if self.cacheFilePath:
+			with open( self.cacheFilePath, 'w' ) as f:
+				f.write( '\n'.join( [ s.serialise() for s in self.servicesCache ] ) )
 	
 	def insertNewServices( self, newServices ):
 		for newService in newServices:
@@ -34,11 +57,12 @@ class ServicesMonitor( object ):
 			station     = info[1]
 			destination = info[2]
 
-			# maintain a maximum of 5 servies for now, FIFO
-			self.servicesCache.appendleft( Service( time, station, destination ) )
-			if len( self.servicesCache ) == 6:
-				drop = self.servicesCache.pop()
+			# maintain a maximum of 15 servies for now, FIFO
+			self.servicesCache.append( Service( time, station, destination ) )
+			if len( self.servicesCache ) == 15:
+				self.servicesCache = self.servicesCache[1:]
 				logging.info( 'Dropping: %s', drop.printInfo() )
+			self._saveServicesToFile()
 
 	def _getCurrentTime( self ):
 	        # get current time but remove timezone after
@@ -78,7 +102,13 @@ class CommunicationBot( object ):
 
 	def getNewServiceRequests( self ):
 		validServiceRequests = []
-		messages = self.twitter.get_direct_messages( since_id =  self.mostRecentMessageId if self.mostRecentMessageId else None )
+		
+		try:
+			messages = self.twitter.get_direct_messages( since_id =  self.mostRecentMessageId if self.mostRecentMessageId else None )
+		except Exception as e:
+			logging.error( 'Error getting direct messages, restarting twitter client' )
+			self.twitter = Twython( TW_CONS_KEY, TW_CONS_SECRET, TW_ACCESS_KEY, TW_ACCESS_SECRET ) 
+	 	
 		if messages:
 			for message in messages:
 				self.mostRecentMessageId = message.get( 'id' ) if message.get( 'id' ) > self.mostRecentMessageId else self.mostRecentMessageId
@@ -104,16 +134,17 @@ class CommunicationBot( object ):
 
 	def postTweet( self, message ):
 		try:
-			self.twitter.update_status( status = message )
+			tweet = datetime.date.today().strftime('%d/%m/%y') + ': ' + message
+			self.twitter.update_status( status = tweet )
 		except TwythonError as e:
 			logging.warn( 'Twython error posting tweet: %s', e.msg )
 
 class ArrivalETAMonitor( object ):
 
-	def __init__( self ):
+	def __init__( self, servicesMonitor, communicationClient ):
 		self.nationalRailClient = self._setupClient()
-		self.servicesClient = ServicesMonitor()
-		self.communicationClient = CommunicationBot()
+		self.servicesClient = servicesMonitor
+		self.communicationClient = communicationClient
 
 	def _setupClient( self ):
 		token = Element( 'AccessToken', ns = DARWIN_WEBSERVICE_NAMESPACE )
@@ -125,12 +156,18 @@ class ArrivalETAMonitor( object ):
 		return client
 
 	def _getDesiredServiceFromDepartureBoard( self, service ):
-		depBoard = self.nationalRailClient.service.GetDepBoardWithDetails( 10, service.station, service.destination, None, None, None )
-		for serviceItem in depBoard.trainServices.service:
-			if serviceItem.std == service.scheduledTimeStr:
-				for serviceLocation in serviceItem.destination.location:
-					if serviceLocation.crs == service.destination:
-						return serviceItem
+		depBoard = []
+		try:
+			depBoard = self.nationalRailClient.service.GetDepBoardWithDetails( 10, service.station, service.destination, None, None, None )
+		except Exception as e:
+			self.communicationClient.postTweet( 'Encountered exception of type %s while querying national rail. Creating new client..' % type( e ) )
+			self.nationalRailClient = self._setupClient()
+		if depBoard:
+			for serviceItem in depBoard.trainServices.service:
+				if serviceItem.std == service.scheduledTimeStr:
+					for serviceLocation in serviceItem.destination.location:
+						if serviceLocation.crs == service.destination:
+							return serviceItem
 
 	def _calculateDelay( self, scheduled, estimate ):
 		try:
@@ -153,12 +190,21 @@ class ArrivalETAMonitor( object ):
 					delay = self._calculateDelay( service.scheduledTime, serviceData.etd )
 					if delay.seconds > ( 3 * 60 ):
 						logging.info( "sending delay warning for: %s", service.printInfo() )
-						notificationStr = datetime.date.today().strftime('%d/%m/%y') + ': ' + service.printInfo() + ' is delayed by %s minutes' % ( delay.seconds / 60 ) 
+						notificationStr = service.printInfo() + ' is delayed by %s minutes' % ( delay.seconds / 60 ) 
 						self.communicationClient.postTweet( notificationStr )
 			time.sleep( 120 )
 
-def run():
+def run( pathToMonitorCache = '' ):
 	logging.basicConfig( filename = 'train_monitor.log', level = logging.INFO, format = '%(asctime)s %(message)s', datefmt = '%m/%d/%Y %I:%M:%S %p' )
 	logging.info( 'Starting' )
-	monitor = ArrivalETAMonitor()
+	servicesMonitor = ServicesMonitor( pathToMonitorCache )
+	communicationClient = CommunicationBot()
+	monitor = ArrivalETAMonitor( servicesMonitor, communicationClient )
 	monitor.monitorServices()
+
+def main( args ):
+	path = args[0]
+	run( path )
+
+if __name__ == '__main__':
+	main( sys.argv[1:] )
