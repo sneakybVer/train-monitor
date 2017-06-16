@@ -18,11 +18,14 @@ class Service( object ):
 		self.station 	      = station
 		self.destination      = destination
 
+	def _allProperties( self ):
+		return ( self.scheduledTimeStr, self.station, self.destination )
+
 	def serialise( self ):
-		return ' '.join( [ self.scheduledTimeStr, self.station, self.destination ] )
+		return ' '.join( self._allProperties() )
 
 	def printInfo( self ):
-		return 'The %s service from %s to %s' % ( self.scheduledTimeStr, self.station, self.destination ) 
+		return 'The %s service from %s to %s' % self._allProperties() 
 
 class ServicesMonitor( object ):
 
