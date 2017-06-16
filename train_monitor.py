@@ -52,20 +52,35 @@ class ServicesMonitor( object ):
 			with open( self.cacheFilePath, 'w' ) as f:
 				f.write( '\n'.join( [ s.serialise() for s in self.servicesCache ] ) )
 	
+	def _createService( self, info ):
+		time        = info[0]
+		station	    = info[1]
+		destination = info[2]
+		return Service( time, station, destination )
+
 	def insertNewServices( self, newServices ):
 		for newService in newServices:
 			info = newService.split( ' ' )
-			# naive implementation trusts format of data - TODO improve
-			time        = info[0]
-			station     = info[1]
-			destination = info[2]
-
-			# maintain a maximum of 15 servies for now, FIFO
-			self.servicesCache.append( Service( time, station, destination ) )
+			self.servicesCache.append( self._createService( info ) )
 			if len( self.servicesCache ) == 15:
-				self.servicesCache = self.servicesCache[1:]
 				logging.info( 'Dropping: %s', drop.printInfo() )
+				self.removeService( self.servicesCache[-1] )
 			self._saveServicesToFile()
+
+	def removeServices( self, servicesToRemove ):
+		for serviceToRemove in servicesToRemove:
+			info = serviceToRemove.split( ' ' )
+			service = self._createService( info )
+			for existingService in self.servicesCache:
+				if service.serialise() == existingService.serialise():
+					self._removeService( existingService )
+
+	def _removeService( self, service ):
+		try:
+			self.servicesCache.remove( service )
+			return True
+		except IndexError as _:
+			return False
 
 	def _getCurrentTime( self ):
 	        # get current time but remove timezone after
@@ -91,9 +106,9 @@ class CommunicationBot( object ):
 			id = f.read()
 			return int( id )
 	
-	def _isRequiredFormat( self, serviceRequest ):
+	def _isRequiredFormat( self, request ):
 		# quite noddy, TODO make smarter, use re
-		items = serviceRequest.split( ' ' )
+		items = request.split( ' ' )
 		if len( items ) == 3:
 			if len( items[1] ) == 3 and len( items[2] ) == 3:
 				try:
@@ -105,6 +120,7 @@ class CommunicationBot( object ):
 
 	def getNewServiceRequests( self ):
 		validServiceRequests = []
+		validRemoveRequests = []
 		
 		try:
 			messages = self.twitter.get_direct_messages( since_id =  self.mostRecentMessageId if self.mostRecentMessageId else None )
@@ -115,19 +131,28 @@ class CommunicationBot( object ):
 		if messages:
 			for message in messages:
 				self.mostRecentMessageId = message.get( 'id' ) if message.get( 'id' ) > self.mostRecentMessageId else self.mostRecentMessageId
-				serviceRequest = message.get( 'text' )
-				if self._isRequiredFormat( serviceRequest ):
-					logging.info( 'Subscribing to: %s', serviceRequest )
+				request = message.get( 'text' )
+
+				if 'STOP' in request:
+					if self._isRequiredFormat( request.replace( 'STOP', '' ) ):
+						logging.info( 'Removing: %s', request )
+						validRemoveRequests.append( request )
+						continue						
+
+				if self._isRequiredFormat( request ):
+					logging.info( 'Subscribing to: %s', request )
 					self.postDirectMessage( message.get( 'sender_id' ), 'Subscribed!' )
-					validServiceRequests.append( serviceRequest )
-				else:
-					self.postDirectMessage( message.get( 'sender_id' ), 'I received an invalid request: %s' % serviceRequest )
-					self.postDirectMessage( message.get( 'sender_id' ), 'Valid message format is HH:MM STN DEST, using station CRS codes. For example, 13:24 HIT KGX' )
+					validServiceRequests.append( request )
+					continue
+
+				self.postDirectMessage( message.get( 'sender_id' ), 'I received an invalid request: %s' % request )
+				self.postDirectMessage( message.get( 'sender_id' ), 'Valid message format is HH:MM STN DEST, using station CRS codes. For example, 13:24 HIT KGX' )
 
 			with open( MESSAGE_ID_FILE, 'w' ) as f:
 				f.truncate()
 				f.write( str( self.mostRecentMessageId ) )
-		return validServiceRequests
+		
+		return validServiceRequests, validRemoveRequests
 
 	def postDirectMessage( self, userId, message ):
 		try:
@@ -182,7 +207,8 @@ class ArrivalETAMonitor( object ):
 
 	def monitorServices( self ):
 		while 1:
-			newServiceMessages = self.communicationClient.getNewServiceRequests()
+			newServiceMessages, newRemoveMessages = self.communicationClient.getNewServiceRequests()
+			self.servicesClient.removeServices( newRemoveMessages )
 			self.servicesClient.insertNewServices( newServiceMessages )			
 			
 			for service in self.servicesClient.getServicesToMonitor():
