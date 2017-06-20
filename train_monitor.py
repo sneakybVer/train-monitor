@@ -60,12 +60,12 @@ class ServicesMonitor( object ):
 
 	def insertNewServices( self, newServices ):
 		for newService in newServices:
+			if len( self.servicesCache ) == 15:
+				logging.info( 'Dropping: %s', self.servicesCache[0].printInfo() )
+				self.removeService( self.servicesCache[0] )
 			info = newService.split( ' ' )
 			self.servicesCache.append( self._createService( info ) )
-			if len( self.servicesCache ) == 15:
-				logging.info( 'Dropping: %s', drop.printInfo() )
-				self.removeService( self.servicesCache[-1] )
-			self._saveServicesToFile()
+		self._saveServicesToFile()
 
 	def removeServices( self, servicesToRemove ):
 		for serviceToRemove in servicesToRemove:
@@ -92,7 +92,6 @@ class ServicesMonitor( object ):
 		return ( scheduledTime - self._getCurrentTime() ).seconds < 1800
 
 	def getServicesToMonitor( self ):
-		# TODO improve to load from file if present etc etc
 		return [ service for service in self.servicesCache if self._isWithinTimeframe( service.scheduledTime ) ]
 
 class CommunicationBot( object ):
@@ -207,9 +206,9 @@ class ArrivalETAMonitor( object ):
 
 	def monitorServices( self ):
 		while 1:
-			newServiceMessages, newRemoveMessages = self.communicationClient.getNewServiceRequests()
-			self.servicesClient.removeServices( newRemoveMessages )
-			self.servicesClient.insertNewServices( newServiceMessages )			
+			addServiceMessages, removeServiceMessages = self.communicationClient.getNewServiceRequests()
+			self.servicesClient.removeServices( removeServiceMessages )
+			self.servicesClient.insertNewServices( addServiceMessages )			
 			
 			for service in self.servicesClient.getServicesToMonitor():
 				logging.info( "monitoring service: %s", service.printInfo() )
