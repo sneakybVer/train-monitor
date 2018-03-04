@@ -1,6 +1,5 @@
-message.txt
-tokens.txt
+*.pyc
+*.txt
+*.sh
+*.log
 consts.py
-consts.pyc
-train_monitor.log
-train_monitor.sh
