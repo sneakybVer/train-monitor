@@ -32,12 +32,12 @@ class ServicesMonitor( object ):
 	# TODO implement holding onto services for a certain amount of time
 	
 	def __init__( self, cacheFilePath = '' ):
-		self.cacheFilePath = cacheFilePath
-		self.servicesCache = self._loadServicesFromFile()
+		self.cacheFilePath = cacheFilePath	
 
-	def _loadServicesFromFile( self ):
+	def _servicesFromFile( self ):
 		res = []
 		if self.cacheFilePath:
+			logging.info( 'loading services from {}'.format( self.cacheFilePath ) )
 			with open( self.cacheFilePath, 'r' ) as f:
 				content = f.read()
 			serialisedServices = content.split( '\n' )
@@ -47,10 +47,10 @@ class ServicesMonitor( object ):
 					res.append( Service( info[0], info[1], info[2] ) )
 		return res		
 
-	def _saveServicesToFile( self ):
+	def _saveServicesToFile( self, services ):
 		if self.cacheFilePath:
 			with open( self.cacheFilePath, 'w' ) as f:
-				f.write( '\n'.join( [ s.serialise() for s in self.servicesCache ] ) )
+				f.write( '\n'.join( { s.serialise() for s in services } ) )
 	
 	def _createService( self, info ):
 		time        = info[0]
@@ -59,28 +59,18 @@ class ServicesMonitor( object ):
 		return Service( time, station, destination )
 
 	def insertNewServices( self, newServices ):
-		for newService in newServices:
-			if len( self.servicesCache ) == 15:
-				logging.info( 'Dropping: %s', self.servicesCache[0].printInfo() )
-				self.removeService( self.servicesCache[0] )
-			info = newService.split( ' ' )
-			self.servicesCache.append( self._createService( info ) )
-		self._saveServicesToFile()
+		cache = self._servicesFromFile()
+		cache.extend( [ self._createService( newService.split( ' ' ) ) for newService in newServices ] )
+		self._saveServicesToFile( cache )
 
 	def removeServices( self, servicesToRemove ):
+		cache = self._servicesFromFile()
 		for serviceToRemove in servicesToRemove:
-			info = serviceToRemove.split( ' ' )
-			service = self._createService( info )
-			for existingService in self.servicesCache:
+			service = self._createService( serviceToRemove.split( ' ' ) )
+			for existingService in cache:
 				if service.serialise() == existingService.serialise():
-					self._removeService( existingService )
-
-	def _removeService( self, service ):
-		try:
-			self.servicesCache.remove( service )
-			return True
-		except IndexError as _:
-			return False
+					cache.remove( existingService )
+		self._saveServicesToFile( cache )
 
 	def _getCurrentTime( self ):
 	        # get current time but remove timezone after
@@ -92,7 +82,8 @@ class ServicesMonitor( object ):
 		return ( scheduledTime - self._getCurrentTime() ).seconds < 1800
 
 	def getServicesToMonitor( self ):
-		return [ service for service in self.servicesCache if self._isWithinTimeframe( service.scheduledTime ) ]
+		return [ service for service in self._servicesFromFile() if self._isWithinTimeframe( service.scheduledTime ) ]
+
 
 class CommunicationBot( object ):
 
@@ -153,25 +144,31 @@ class CommunicationBot( object ):
 		
 		return validServiceRequests, validRemoveRequests
 
-	def postDirectMessage( self, userId, message ):
+	def _postDirectMessage( self, userId, message ):
 		try:
 			self.twitter.send_direct_message( user_id = userId, text = message )
 		except TwythonError as e:
 			logging.warn( 'Twython error sending direct message: %s', e.msg )		
 
-	def postTweet( self, message ):
+	def _postTweet( self, message ):
 		try:
 			tweet = datetime.date.today().strftime('%d/%m/%y') + ': ' + message
 			self.twitter.update_status( status = tweet )
 		except TwythonError as e:
 			logging.warn( 'Twython error posting tweet: %s', e.msg )
 
+	def sendMessages( self, messages ):
+		for message in messages:
+			self._postTweet( message )
+
+
 class ArrivalETAMonitor( object ):
 
-	def __init__( self, servicesMonitor, communicationClient ):
+	def __init__( self, servicesMonitor, communicationClient, interval ):
 		self.nationalRailClient = self._setupClient()
 		self.servicesClient = servicesMonitor
 		self.communicationClient = communicationClient
+		self.interval = interval
 
 	def _setupClient( self ):
 		token = Element( 'AccessToken', ns = DARWIN_WEBSERVICE_NAMESPACE )
@@ -187,7 +184,6 @@ class ArrivalETAMonitor( object ):
 		try:
 			depBoard = self.nationalRailClient.service.GetDepBoardWithDetails( 10, service.station, service.destination, None, None, None )
 		except Exception as e:
-			self.communicationClient.postTweet( 'Encountered exception of type %s while querying national rail. Creating new client..' % type( e ) )
 			self.nationalRailClient = self._setupClient()
 		if depBoard:
 			for serviceItem in depBoard.trainServices.service:
@@ -204,30 +200,50 @@ class ArrivalETAMonitor( object ):
 			estimate = scheduled
 		return estimate - scheduled
 
+	def getNewServiceRequests( self ):
+		if self.communicationClient:
+			return self.communicationClient.getNewServiceRequests()
+		return [], []
+
+	def checkForNewServiceRequests( self ):
+		addServiceMessages, removeServiceMessages = self.getNewServiceRequests()
+		if removeServiceMessages:
+			self.servicesClient.removeServices( removeServiceMessages )
+		if addServiceMessages:
+			self.servicesClient.insertNewServices( addServiceMessages )			
+
+	def queryServices( self ):			
+		delays = []
+		for service in self.servicesClient.getServicesToMonitor():
+			logging.info( "querying for service: %s", service.printInfo() )
+
+			serviceData = self._getDesiredServiceFromDepartureBoard( service )
+			if serviceData:
+				delay = self._calculateDelay( service.scheduledTime, serviceData.etd )
+				if delay.seconds > ( 3 * 60 ):
+					logging.info( "sending delay warning for: %s", service.printInfo() )
+					notificationStr = service.printInfo() + ' is delayed by %s minutes' % ( delay.seconds / 60 ) 
+					delays.append( notificationStr )
+		if self.communicationClient:
+			self.communicationClient.sendMessages( delays )
+		return delays
+
 	def monitorServices( self ):
 		while 1:
-			addServiceMessages, removeServiceMessages = self.communicationClient.getNewServiceRequests()
-			self.servicesClient.removeServices( removeServiceMessages )
-			self.servicesClient.insertNewServices( addServiceMessages )			
-			
-			for service in self.servicesClient.getServicesToMonitor():
-				logging.info( "monitoring service: %s", service.printInfo() )
+			self.checkForNewServiceRequests()
+			self.queryServices()
+			time.sleep( self.interval )
 
-				serviceData = self._getDesiredServiceFromDepartureBoard( service )
-				if serviceData:
-					delay = self._calculateDelay( service.scheduledTime, serviceData.etd )
-					if delay.seconds > ( 3 * 60 ):
-						logging.info( "sending delay warning for: %s", service.printInfo() )
-						notificationStr = service.printInfo() + ' is delayed by %s minutes' % ( delay.seconds / 60 ) 
-						self.communicationClient.postTweet( notificationStr )
-			time.sleep( 120 )
-
-def run( pathToMonitorCache = '' ):
-	logging.basicConfig( filename = 'train_monitor.log', level = logging.INFO, format = '%(asctime)s %(message)s', datefmt = '%m/%d/%Y %I:%M:%S %p' )
+def setupTrainMonitor( pathToMonitorCache, pathToLogFile, communicationClient, queryInterval ):
+	logging.basicConfig( filename = pathToLogFile, level = logging.INFO, format = '%(asctime)s %(message)s', datefmt = '%m/%d/%Y %I:%M:%S %p' )
 	logging.info( 'Starting' )
 	servicesMonitor = ServicesMonitor( pathToMonitorCache )
+	monitor = ArrivalETAMonitor( servicesMonitor, communicationClient, queryInterval )
+	return monitor
+
+def run( pathToMonitorCache = '', queryInterval = 120 ):
 	communicationClient = CommunicationBot()
-	monitor = ArrivalETAMonitor( servicesMonitor, communicationClient )
+	monitor = setupTrainMonitor( pathToMonitorCache, 'train_monitor.log', communicationClient, queryInterval )
 	monitor.monitorServices()
 
 def main( args ):
