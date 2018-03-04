@@ -1,0 +1,154 @@
+03/03/2018 03:16:13 PM Starting
+03/03/2018 03:19:26 PM Starting
+03/03/2018 03:19:29 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 03:21:23 PM Starting
+03/03/2018 03:21:26 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 03:46:04 PM Starting
+03/03/2018 03:46:07 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 03:47:00 PM Starting
+03/03/2018 03:47:03 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 03:50:36 PM Starting
+03/03/2018 03:50:39 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 03:51:15 PM 127.0.0.1 - - [03/Mar/2018 15:51:15] "GET / HTTP/1.1" 404 -
+03/03/2018 03:51:28 PM 127.0.0.1 - - [03/Mar/2018 15:51:28] "GET /train_monitor/getDelays/ HTTP/1.1" 404 -
+03/03/2018 03:53:15 PM Starting
+03/03/2018 03:53:18 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 03:53:21 PM 127.0.0.1 - - [03/Mar/2018 15:53:21] "GET / HTTP/1.1" 200 -
+03/03/2018 03:54:08 PM 127.0.0.1 - - [03/Mar/2018 15:54:08] "GET /train_monitor/getDelays/ HTTP/1.1" 404 -
+03/03/2018 03:54:11 PM getting delays
+03/03/2018 03:54:11 PM 127.0.0.1 - - [03/Mar/2018 15:54:11] "GET /train_monitor/getDelays HTTP/1.1" 500 -
+03/03/2018 03:54:22 PM 127.0.0.1 - - [03/Mar/2018 15:54:22] "GET / HTTP/1.1" 200 -
+03/03/2018 04:01:17 PM Starting
+03/03/2018 04:03:55 PM Starting
+03/03/2018 04:17:26 PM Starting
+03/03/2018 04:17:29 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:17:38 PM 127.0.0.1 - - [03/Mar/2018 16:17:38] "GET / HTTP/1.1" 200 -
+03/03/2018 04:17:48 PM 127.0.0.1 - - [03/Mar/2018 16:17:48] "GET /train_monitor/getDelays HTTP/1.1" 500 -
+03/03/2018 04:20:48 PM Starting
+03/03/2018 04:20:51 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:21:04 PM 127.0.0.1 - - [03/Mar/2018 16:21:04] "GET /train_monitor/getDelays HTTP/1.1" 500 -
+03/03/2018 04:22:35 PM Starting
+03/03/2018 04:22:38 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:22:44 PM testing
+03/03/2018 04:22:44 PM calling callback getTrainMonitor after error
+03/03/2018 04:22:44 PM Starting
+03/03/2018 04:22:47 PM retrying query after error
+03/03/2018 04:22:47 PM testing
+03/03/2018 04:22:47 PM calling callback getTrainMonitor after error
+03/03/2018 04:22:47 PM Starting
+03/03/2018 04:22:50 PM retrying query after error
+03/03/2018 04:22:50 PM 127.0.0.1 - - [03/Mar/2018 16:22:50] "GET /train_monitor/getDelays HTTP/1.1" 500 -
+03/03/2018 04:25:18 PM Starting
+03/03/2018 04:25:21 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:25:25 PM testing retry
+03/03/2018 04:25:25 PM calling callback getTrainMonitor after error
+03/03/2018 04:25:25 PM Starting
+03/03/2018 04:25:28 PM retrying query after error
+03/03/2018 04:25:28 PM testing retry
+03/03/2018 04:25:28 PM calling callback getTrainMonitor after error
+03/03/2018 04:25:28 PM Starting
+03/03/2018 04:25:31 PM retrying query after error
+03/03/2018 04:25:31 PM 127.0.0.1 - - [03/Mar/2018 16:25:31] "GET /train_monitor/getDelays HTTP/1.1" 500 -
+03/03/2018 04:26:46 PM Starting
+03/03/2018 04:26:49 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:26:51 PM testing retry
+03/03/2018 04:26:51 PM calling callback getTrainMonitor after error
+03/03/2018 04:26:51 PM Starting
+03/03/2018 04:26:54 PM retrying query after error
+03/03/2018 04:26:54 PM testing retry
+03/03/2018 04:26:54 PM calling callback getTrainMonitor after error
+03/03/2018 04:26:54 PM Starting
+03/03/2018 04:26:57 PM retrying query after error
+03/03/2018 04:26:57 PM 127.0.0.1 - - [03/Mar/2018 16:26:57] "GET /train_monitor/getDelays HTTP/1.1" 500 -
+03/03/2018 04:33:50 PM Starting
+03/03/2018 04:33:53 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:33:56 PM testing retry
+03/03/2018 04:33:56 PM calling callback getTrainMonitor after error
+03/03/2018 04:33:56 PM Starting
+03/03/2018 04:33:59 PM retrying query after error
+03/03/2018 04:33:59 PM testing retry
+03/03/2018 04:33:59 PM calling callback getTrainMonitor after error
+03/03/2018 04:33:59 PM Starting
+03/03/2018 04:34:01 PM retrying query after error
+03/03/2018 04:34:01 PM None
+03/03/2018 04:34:02 PM 127.0.0.1 - - [03/Mar/2018 16:34:02] "GET /train_monitor/getDelays HTTP/1.1" 200 -
+03/03/2018 04:36:10 PM Starting
+03/03/2018 04:36:13 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:36:19 PM testing retry
+03/03/2018 04:36:19 PM calling callback getTrainMonitor after error
+03/03/2018 04:36:19 PM Starting
+03/03/2018 04:36:22 PM retrying query after error
+03/03/2018 04:36:22 PM testing retry
+03/03/2018 04:36:22 PM calling callback getTrainMonitor after error
+03/03/2018 04:36:22 PM Starting
+03/03/2018 04:36:25 PM retrying query after error
+03/03/2018 04:36:25 PM No Services Found
+03/03/2018 04:36:25 PM 127.0.0.1 - - [03/Mar/2018 16:36:25] "GET /train_monitor/getDelays HTTP/1.1" 200 -
+03/03/2018 04:37:27 PM Starting
+03/03/2018 04:37:30 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:37:34 PM 127.0.0.1 - - [03/Mar/2018 16:37:34] "GET /train_monitor/getDelays HTTP/1.1" 500 -
+03/03/2018 04:38:02 PM Starting
+03/03/2018 04:38:05 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:38:07 PM global name 'trainMonitor' is not defined
+03/03/2018 04:38:07 PM calling callback getTrainMonitor after error
+03/03/2018 04:38:07 PM Starting
+03/03/2018 04:38:10 PM retrying query after error
+03/03/2018 04:38:10 PM global name 'trainMonitor' is not defined
+03/03/2018 04:38:10 PM calling callback getTrainMonitor after error
+03/03/2018 04:38:10 PM Starting
+03/03/2018 04:38:13 PM retrying query after error
+03/03/2018 04:38:13 PM 127.0.0.1 - - [03/Mar/2018 16:38:13] "GET /train_monitor/getDelays HTTP/1.1" 200 -
+03/03/2018 04:40:52 PM Starting
+03/03/2018 04:40:55 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:41:01 PM 'NoneType' object has no attribute 'queryServices'
+03/03/2018 04:41:01 PM calling callback getTrainMonitor after error
+03/03/2018 04:41:01 PM Starting
+03/03/2018 04:41:04 PM retrying query after error
+03/03/2018 04:41:04 PM 'NoneType' object has no attribute 'queryServices'
+03/03/2018 04:41:04 PM calling callback getTrainMonitor after error
+03/03/2018 04:41:04 PM Starting
+03/03/2018 04:41:07 PM retrying query after error
+03/03/2018 04:41:07 PM 127.0.0.1 - - [03/Mar/2018 16:41:07] "GET /train_monitor/getDelays HTTP/1.1" 200 -
+03/03/2018 04:43:50 PM Starting
+03/03/2018 04:43:53 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 04:44:00 PM 127.0.0.1 - - [03/Mar/2018 16:44:00] "GET /train_monitor/getDelays HTTP/1.1" 200 -
+03/03/2018 04:44:12 PM 127.0.0.1 - - [03/Mar/2018 16:44:11] "GET /train_monitor/getDelays HTTP/1.1" 200 -
+03/03/2018 04:46:24 PM Starting
+03/03/2018 05:01:51 PM Starting
+03/03/2018 05:03:44 PM Starting
+03/03/2018 05:03:47 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 05:03:59 PM getattr(): attribute name must be string
+03/03/2018 05:03:59 PM calling callback getTrainMonitor after error
+03/03/2018 05:03:59 PM Starting
+03/03/2018 05:04:02 PM retrying query after error
+03/03/2018 05:04:02 PM getattr(): attribute name must be string
+03/03/2018 05:04:02 PM calling callback getTrainMonitor after error
+03/03/2018 05:04:02 PM Starting
+03/03/2018 05:04:05 PM retrying query after error
+03/03/2018 05:04:05 PM 127.0.0.1 - - [03/Mar/2018 17:04:05] "GET /train_monitor/getDelays HTTP/1.1" 200 -
+03/03/2018 05:05:06 PM Starting
+03/03/2018 05:05:09 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 05:05:34 PM 'list' object is not callable
+03/03/2018 05:05:34 PM calling callback getTrainMonitor after error
+03/03/2018 05:05:34 PM Starting
+03/03/2018 05:05:36 PM retrying query after error
+03/03/2018 05:05:36 PM 'list' object is not callable
+03/03/2018 05:05:36 PM calling callback getTrainMonitor after error
+03/03/2018 05:05:36 PM Starting
+03/03/2018 05:05:39 PM retrying query after error
+03/03/2018 05:05:39 PM 127.0.0.1 - - [03/Mar/2018 17:05:39] "GET /train_monitor/getDelays HTTP/1.1" 200 -
+03/03/2018 05:06:49 PM Starting
+03/03/2018 05:18:19 PM Starting
+03/03/2018 05:18:22 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 05:18:34 PM 127.0.0.1 - - [03/Mar/2018 17:18:34] "GET /train_monitor/getDelays HTTP/1.1" 200 -
+03/03/2018 05:20:24 PM Starting
+03/03/2018 05:20:24 PM loading services from /home/steve/stephensbot/trains_to_monitor.txt
+03/03/2018 05:20:26 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 05:42:14 PM Starting
+03/03/2018 05:42:14 PM loading services from /home/steve/stephensbot/trains_to_monitor.txt
+03/03/2018 05:42:17 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 05:42:24 PM 127.0.0.1 - - [03/Mar/2018 17:42:24] "GET /train_monitor/getDelays HTTP/1.1" 200 -
+03/03/2018 06:14:27 PM Starting
+03/03/2018 06:14:29 PM  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+03/03/2018 06:17:12 PM loading services from /home/steve/stephensbot/trains_to_monitor.txt
+03/03/2018 06:17:12 PM 127.0.0.1 - - [03/Mar/2018 18:17:12] "GET /train_monitor/getDelays HTTP/1.1" 200 -

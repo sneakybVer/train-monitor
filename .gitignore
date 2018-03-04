@@ -1,4 +1,7 @@
+server/logs.txt
+server/startup.sh
 tokens.txt
 consts.py
 consts.pyc
 train_monitor.log
+train_monitor.sh
