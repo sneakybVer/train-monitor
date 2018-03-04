@@ -1,5 +1,5 @@
-*.pyc
-*.txt
-*.sh
-*.log
+**.pyc
+**.txt
+**.sh
+**.log
 consts.py
