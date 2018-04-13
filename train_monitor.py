@@ -92,9 +92,12 @@ class CommunicationBot( object ):
 		self.mostRecentMessageId = self._loadMostRecentMessageId()
 
 	def _loadMostRecentMessageId( self ):
-		with open( MESSAGE_ID_FILE, 'r' ) as f:
-			id = f.read()
-			return int( id )
+		try:
+			with open( MESSAGE_ID_FILE, 'r' ) as f:
+				id = f.read()
+				return int( id )
+		except ( ValueError, IOError ) as e:
+			logging.warn( 'Failed to read most recent message, ex %s', e.message )
 	
 	def _isRequiredFormat( self, request ):
 		# quite noddy, TODO make smarter, use re
@@ -120,7 +123,7 @@ class CommunicationBot( object ):
 	 	
 		if messages:
 			for message in messages:
-				self.mostRecentMessageId = message.get( 'id' ) if message.get( 'id' ) > self.mostRecentMessageId else self.mostRecentMessageId
+				self.mostRecentMessageId = message.get( 'id' ) if message.get( 'id' ) > ( self.mostRecentMessageId or 0 ) else self.mostRecentMessageId
 				request = message.get( 'text' )
 
 				if 'STOP' in request:
@@ -131,12 +134,12 @@ class CommunicationBot( object ):
 
 				if self._isRequiredFormat( request ):
 					logging.info( 'Subscribing to: %s', request )
-					self.postDirectMessage( message.get( 'sender_id' ), 'Subscribed!' )
+					self._postDirectMessage( message.get( 'sender_id' ), 'Subscribed!' )
 					validServiceRequests.append( request )
 					continue
 
-				self.postDirectMessage( message.get( 'sender_id' ), 'I received an invalid request: %s' % request )
-				self.postDirectMessage( message.get( 'sender_id' ), 'Valid message format is HH:MM STN DEST, using station CRS codes. For example, 13:24 HIT KGX' )
+				self._postDirectMessage( message.get( 'sender_id' ), 'I received an invalid request: %s' % request )
+				self._postDirectMessage( message.get( 'sender_id' ), 'Valid message format is HH:MM STN DEST, using station CRS codes. For example, 13:24 HIT KGX' )
 
 			with open( MESSAGE_ID_FILE, 'w' ) as f:
 				f.truncate()
