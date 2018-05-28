@@ -146,6 +146,7 @@ class TwitterCommunicationBot(AbstractCommunicationClient):
                 trimmedRequest = request.replace('STOP', '').strip()
                 if self._isRequiredFormat(trimmedRequest):
                     logging.info('Removing: %s', trimmedRequest)
+                    self._postDirectMessage(message.get('sender_id'), 'Removed!')
                     validRemoveRequests.append(trimmedRequest)
                     continue
 
