@@ -23,7 +23,7 @@ class Service(object):
         return ' '.join(self.scheduledTimeStr, self.station, self.destination)
 
     def printInfo(self):
-        return 'The %s service from %s to %s' % self._allProperties()
+        return 'The %s service from %s to %s' % (self.scheduledTimeStr, self.station, self.destination)
 
 
 class ServicesMonitor(object):
@@ -86,8 +86,9 @@ class AbstractCommunicationClient(object):
     def getNewServiceRequests(self):
         return [], []
 
-    def sendMessages(self):
-        return None
+    def sendMessages(self, messages):
+        for message in messages:
+            self._sendMessage(message)
 
 
 class TwitterCommunicationBot(AbstractCommunicationClient):
@@ -97,6 +98,7 @@ class TwitterCommunicationBot(AbstractCommunicationClient):
         self.mostRecentMessageId = self._loadMostRecentMessageId()
 
     def _setupTwitter(self):
+        logging.info('Setting up twitter client')
         self.twitter = Twython(TW_CONS_KEY, TW_CONS_SECRET, TW_ACCESS_KEY, TW_ACCESS_SECRET)
 
     def _loadMostRecentMessageId(self):
@@ -108,7 +110,6 @@ class TwitterCommunicationBot(AbstractCommunicationClient):
             logging.warn('Failed to read most recent message, ex %s', e.message)
 
     def _isRequiredFormat(self, request):
-        # quite noddy, TODO make smarter, use re
         items = request.split(' ')
         if len(items) == 3:
             if len(items[1]) == 3 and len(items[2]) == 3:
@@ -163,16 +164,12 @@ class TwitterCommunicationBot(AbstractCommunicationClient):
         except TwythonError as e:
             logging.warn('Twython error sending direct message: %s', e.msg)
 
-    def _postTweet(self, message):
+    def _sendMessage(self, message):
         try:
             tweet = datetime.date.today().strftime('%d/%m/%y') + ': ' + message
             self.twitter.update_status(status=tweet)
         except TwythonError as e:
             logging.warn('Twython error posting tweet: %s', e.msg)
-
-    def sendMessages(self, messages):
-        for message in messages:
-            self._postTweet(message)
 
 
 class ArrivalETAMonitor(object):
@@ -185,6 +182,7 @@ class ArrivalETAMonitor(object):
         self.interval = interval or 120
 
     def _setupNationalRailClient(self):
+        logging.info('Setting up national rail client')
         token = Element('AccessToken', ns=DARWIN_WEBSERVICE_NAMESPACE)
         val = Element('TokenValue', ns=DARWIN_WEBSERVICE_NAMESPACE)
         val.setText(DARWIN_TOKEN)
@@ -235,8 +233,10 @@ class ArrivalETAMonitor(object):
 
             serviceData = self._getDesiredServiceFromDepartureBoard(service)
             if serviceData:
-                delay = self._calculateDelay(service.scheduledTime, serviceData.etd)
-                if delay.seconds > (3 * 60):
+                if serviceData.etd == "Cancelled":
+                    logging.info("sending cancelled warning for: %s", service.printInfo())
+                    notificationStr = service.printInfo() + ' is cancelled!'
+                elif self._calculateDelay(service.scheduledTime, serviceData.etd).seconds > (3 * 60):
                     logging.info("sending delay warning for: %s", service.printInfo())
                     notificationStr = service.printInfo() + ' is delayed by %s minutes' % (delay.seconds / 60)
                     delays.append(notificationStr)
