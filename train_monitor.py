@@ -30,7 +30,7 @@ class ServicesMonitor(object):
 
     # TODO implement holding onto services for a certain amount of time
 
-    def __init__(self, cacheFilePath='', serviceTimeframe=3600):
+    def __init__(self, cacheFilePath='', serviceTimeframe=1800):
         self.cacheFilePath = cacheFilePath
         self._serviceTimeframe = serviceTimeframe
         self._services = self._servicesFromFile()
