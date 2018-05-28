@@ -236,6 +236,7 @@ class ArrivalETAMonitor(object):
                 if serviceData.etd == "Cancelled":
                     logging.info("sending cancelled warning for: %s", service.printInfo())
                     notificationStr = service.printInfo() + ' is cancelled!'
+                    self.servicesClient.removeServices([str(service)])
                 elif self._calculateDelay(service.scheduledTime, serviceData.etd).seconds > (3 * 60):
                     logging.info("sending delay warning for: %s", service.printInfo())
                     notificationStr = service.printInfo() + ' is delayed by %s minutes' % (delay.seconds / 60)
