@@ -30,8 +30,10 @@ class ServicesMonitor(object):
 
     # TODO implement holding onto services for a certain amount of time
 
-    def __init__(self, cacheFilePath=''):
+    def __init__(self, cacheFilePath='', serviceTimeframe=3600):
         self.cacheFilePath = cacheFilePath
+        self._serviceTimeframe = serviceTimeframe
+        self._services = self._servicesFromFile()
 
     def _servicesFromFile(self):
         res = []
@@ -46,10 +48,10 @@ class ServicesMonitor(object):
                     res.append(Service(info[0], info[1], info[2]))
         return res
 
-    def _saveServicesToFile(self, services):
+    def _saveServicesToFile(self):
         if self.cacheFilePath:
             with open(self.cacheFilePath, 'w') as f:
-                f.write('\n'.join({str(s) for s in services}))
+                f.write('\n'.join({str(s) for s in self._services}))
 
     @staticmethod
     def _createService(info):
@@ -58,27 +60,31 @@ class ServicesMonitor(object):
         destination = info[2]
         return Service(serviceTime, station, destination)
 
-    def insertNewServices(self, newServices):
-        cache = self._servicesFromFile()
-        cache.extend([self._createService(newService.split(' ')) for newService in newServices])
-        self._saveServicesToFile(cache)
+    def addNewServicesToCache(self, newServices):
+        self._services.extend([self._createService(newService.split(' ')) for newService in newServices])
 
-    def removeServices(self, servicesToRemove):
-        cache = self._servicesFromFile()
+    def addNewServicesToStore(self, newServices):
+        self.addNewServicesToCache(newServices)
+        self._saveServicesToFile()
+
+    def removeServicesFromCache(self, servicesToRemove):
         for serviceToRemove in servicesToRemove:
             service = self._createService(serviceToRemove.split(' '))
-            for existingService in cache:
+            for existingService in self._services:
                 if str(service) == str(existingService):
-                    cache.remove(existingService)
-        self._saveServicesToFile(cache)
+                    self._services.remove(existingService)
+
+    def removeServicesFromStore(self, servicesToRemove):
+        self.removeServicesFromCache(servicesToRemove)
+        self._saveServicesToFile()
 
     def _isWithinTimeframe(self, scheduledTime):
         now = datetime.datetime.now(pytz.timezone('Europe/London'))
         now = now.replace(tzinfo=None)
-        return (scheduledTime - now).seconds < 1800
+        return (scheduledTime - now).seconds < self._serviceTimeframe
 
     def getServicesToMonitor(self):
-        return [service for service in self._servicesFromFile() if self._isWithinTimeframe(service.scheduledTime)]
+        return [service for service in self._services if self._isWithinTimeframe(service.scheduledTime)]
 
 
 class AbstractCommunicationClient(object):
@@ -221,10 +227,10 @@ class ArrivalETAMonitor(object):
         addServiceMessages, removeServiceMessages = self.getNewServiceRequests()
         if removeServiceMessages:
             logging.info('Found remove service messages %s', removeServiceMessages)
-            self.servicesClient.removeServices(removeServiceMessages)
+            self.servicesClient.removeServicesFromStore(removeServiceMessages)
         if addServiceMessages:
             logging.info('Found add service messages %s', addServiceMessages)
-            self.servicesClient.insertNewServices(addServiceMessages)
+            self.servicesClient.addNewServicesToStore(addServiceMessages)
 
     def queryServices(self):
         delays = []
@@ -236,7 +242,8 @@ class ArrivalETAMonitor(object):
                 if serviceData.etd == "Cancelled":
                     logging.info("sending cancelled warning for: %s", service.printInfo())
                     notificationStr = service.printInfo() + ' is cancelled!'
-                    self.servicesClient.removeServices([str(service)])
+                    delays.append(notificationStr)
+                    self.servicesClient.removeServicesFromCache([str(service)])
                 else:
                     delay = self._calculateDelay(service.scheduledTime, serviceData.etd)
                     if delay.seconds > (3 * 60):
