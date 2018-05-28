@@ -143,16 +143,16 @@ class TwitterCommunicationBot(AbstractCommunicationClient):
             request = message.get('text')
 
             if 'STOP' in request:
-                trimmedRequest = request.replace('STOP', '').strip()
-                if self._isRequiredFormat(trimmedRequest):
-                    logging.info('Removing: %s', trimmedRequest)
-                    self._postDirectMessage(message.get('sender_id'), 'Removed!')
-                    validRemoveRequests.append(trimmedRequest)
+                request = request.replace('STOP', '').strip()
+                if self._isRequiredFormat(request):
+                    logging.info('Removing: %s', request)
+                    self._postDirectMessage(message.get('sender_id'), 'Removed! - %s' % request)
+                    validRemoveRequests.append(request)
                     continue
 
             if self._isRequiredFormat(request):
                 logging.info('Subscribing to: %s', request)
-                self._postDirectMessage(message.get('sender_id'), 'Subscribed!')
+                self._postDirectMessage(message.get('sender_id'), 'Subscribed! - %s' % request)
                 validServiceRequests.append(request)
                 continue
 
