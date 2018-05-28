@@ -20,7 +20,7 @@ class Service(object):
         self.destination = destination
 
     def __str__(self):
-        return ' '.join(self.scheduledTimeStr, self.station, self.destination)
+        return ' '.join((self.scheduledTimeStr, self.station, self.destination))
 
     def printInfo(self):
         return 'The %s service from %s to %s' % (self.scheduledTimeStr, self.station, self.destination)
@@ -237,10 +237,12 @@ class ArrivalETAMonitor(object):
                     logging.info("sending cancelled warning for: %s", service.printInfo())
                     notificationStr = service.printInfo() + ' is cancelled!'
                     self.servicesClient.removeServices([str(service)])
-                elif self._calculateDelay(service.scheduledTime, serviceData.etd).seconds > (3 * 60):
-                    logging.info("sending delay warning for: %s", service.printInfo())
-                    notificationStr = service.printInfo() + ' is delayed by %s minutes' % (delay.seconds / 60)
-                    delays.append(notificationStr)
+                else:
+                    delay = self._calculateDelay(service.scheduledTime, serviceData.etd)
+                    if delay.seconds > (3 * 60):
+                        logging.info("sending delay warning for: %s", service.printInfo())
+                        notificationStr = service.printInfo() + ' is delayed by %s minutes' % (delay.seconds / 60)
+                        delays.append(notificationStr)
         self.communicationClient.sendMessages(delays)
         return delays
 
