@@ -143,9 +143,10 @@ class TwitterCommunicationBot(AbstractCommunicationClient):
             request = message.get('text')
 
             if 'STOP' in request:
-                if self._isRequiredFormat(request.replace('STOP', '')):
-                    logging.info('Removing: %s', request)
-                    validRemoveRequests.append(request)
+                trimmedRequest = request.replace('STOP', '').strip()
+                if self._isRequiredFormat(trimmedRequest):
+                    logging.info('Removing: %s', trimmedRequest)
+                    validRemoveRequests.append(trimmedRequest)
                     continue
 
             if self._isRequiredFormat(request):
