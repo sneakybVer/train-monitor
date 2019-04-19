@@ -102,6 +102,7 @@ class TwitterCommunicationBot(AbstractCommunicationClient):
     def __init__(self):
         self._setupTwitter()
         self.mostRecentMessageId = self._loadMostRecentMessageId()
+        self.sentMessages = []
 
     def _setupTwitter(self):
         logging.info('Setting up twitter client')
@@ -173,11 +174,15 @@ class TwitterCommunicationBot(AbstractCommunicationClient):
             logging.warn('Twython error sending direct message: %s', e.msg)
 
     def _sendMessage(self, message):
-        try:
-            tweet = datetime.date.today().strftime('%d/%m/%y') + ': ' + message
-            self.twitter.update_status(status=tweet)
-        except TwythonError as e:
-            logging.warn('Twython error posting tweet: %s', e.msg)
+        tweet = datetime.date.today().strftime('%d/%m/%y') + ': ' + message
+        if tweet not in self.sentMessages:
+            try:
+                self.twitter.update_status(status=tweet)
+                self.sentMessages.append(tweet)
+            except TwythonError as e:
+                logging.warn('Twython error posting tweet: %s', e.msg)
+        else:
+            logging.warn('Message already sent: %s', tweet)
 
 
 class ArrivalETAMonitor(object):
@@ -246,6 +251,10 @@ class ArrivalETAMonitor(object):
                     notificationStr = service.printInfo() + ' is cancelled!'
                     delays.append(notificationStr)
                     self.servicesClient.removeServicesFromCache([str(service)])
+                elif serviceData.etd == "Delayed":
+                    logging.info("sending delayed warning for: %s", service.printInfo())
+                    notificationStr = service.printInfo() + ' is delayed with no ETA'
+                    delays.append(notificationStr)
                 else:
                     delay = self._calculateDelay(service.scheduledTime, serviceData.etd)
                     if delay.seconds > (3 * 60):
