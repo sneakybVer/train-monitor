@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="5f28a23f-1705-4a1e-9dfd-a9ef522f10b8" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/train_monitor.py" beforeDir="false" afterPath="$PROJECT_DIR$/train_monitor.py" afterDir="false" />
-    </list>
+    <list default="true" id="5f28a23f-1705-4a1e-9dfd-a9ef522f10b8" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -16,8 +14,8 @@
       <file leaf-file-name="train_monitor.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/train_monitor.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="277">
-              <caret line="184" column="58" selection-start-line="184" selection-start-column="58" selection-end-line="184" selection-end-column="58" />
+            <state relative-caret-position="178">
+              <caret line="285" column="29" lean-forward="true" selection-start-line="285" selection-start-column="29" selection-end-line="285" selection-end-column="29" />
               <folding>
                 <element signature="e#22#42#0" expanded="true" />
               </folding>
@@ -407,8 +405,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/train_monitor.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="277">
-          <caret line="184" column="58" selection-start-line="184" selection-start-column="58" selection-end-line="184" selection-end-column="58" />
+        <state relative-caret-position="178">
+          <caret line="285" column="29" lean-forward="true" selection-start-line="285" selection-start-column="29" selection-end-line="285" selection-end-column="29" />
           <folding>
             <element signature="e#22#42#0" expanded="true" />
           </folding>

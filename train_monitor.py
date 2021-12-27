@@ -92,6 +92,9 @@ class AbstractCommunicationClient(object):
     def getNewServiceRequests(self):
         return [], []
 
+    def _sendMessage(self, message):
+        raise NotImplementedError()
+
     def sendMessages(self, messages):
         for message in messages:
             self._sendMessage(message)
